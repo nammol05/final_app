@@ -9,11 +9,18 @@ interface Item {
   quantity: number;
   id: string;
   imageUrl: string | null;
+  description: string;
 }
 
 const InventoryPage = () => {
   const [items, setItems] = useState<Item[]>([]);
-  const [form, setForm] = useState<Item>({ name: '', quantity: 0, id: '', imageUrl: null });
+  const [form, setForm] = useState<Item>({
+    name: '',
+    quantity: 0,
+    id: '',
+    imageUrl: null,
+    description: '',
+  });
   const [isEditing, setIsEditing] = useState(false);
 
   const handleAddOrUpdate = (item: Item) => {
@@ -22,7 +29,7 @@ const InventoryPage = () => {
     } else {
       setItems([...items, item]);
     }
-    setForm({ name: '', quantity: 0, id: '', imageUrl: null });
+    setForm({ name: '', quantity: 0, id: '', imageUrl: null, description: '' });
     setIsEditing(false);
   };
 

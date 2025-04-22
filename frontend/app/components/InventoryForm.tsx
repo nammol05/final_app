@@ -5,15 +5,17 @@ interface InventoryFormProps {
     name: string;
     quantity: number;
     id: string;
-    imageUrl: string | null;  // Store image URL
+    imageUrl: string | null;
+    description: string;
   };
   setForm: React.Dispatch<React.SetStateAction<{
     name: string;
     quantity: number;
     id: string;
     imageUrl: string | null;
+    description: string;
   }>>;
-  handleAddOrUpdate: (item: { name: string; quantity: number; id: string; imageUrl: string | null }) => void;
+  handleAddOrUpdate: (item: { name: string; quantity: number; id: string; imageUrl: string | null; description: string }) => void;
   isEditing: boolean;
 }
 
@@ -30,7 +32,7 @@ const InventoryForm: React.FC<InventoryFormProps> = ({ form, setForm, handleAddO
       reader.onloadend = () => {
         setForm({ ...form, imageUrl: reader.result as string });
       };
-      reader.readAsDataURL(file); // Read the file as a data URL
+      reader.readAsDataURL(file);
     }
   };
 
@@ -63,6 +65,14 @@ const InventoryForm: React.FC<InventoryFormProps> = ({ form, setForm, handleAddO
         className="bg-[#1c1c24] p-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
         required
         disabled={isEditing}
+      />
+      <input
+        type="text"
+        name="description"
+        value={form.description}
+        onChange={handleChange}
+        placeholder="Item Description"
+        className="bg-[#1c1c24] p-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
       />
       <input
         type="file"
