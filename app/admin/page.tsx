@@ -4,15 +4,15 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 
 const blankItem: InventoryItem = {
-    id: '',
-    itemname: '',
-    cost: 0,
-    quantity: 0,
-    descrip: '',
-    thumbnail: '',
-    createdAt: '',
-    updatedAt: '',
-  };
+  id: '',
+  itemname: '',
+  cost: 0,
+  quantity: 0,
+  descrip: '',
+  thumbnail: '',
+  createdAt: '',
+  updatedAt: '',
+};
 
 interface InventoryItem {
   id: string;
@@ -64,11 +64,6 @@ export default function AdminInventoryPage() {
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-8">Admin Inventory Management</h1>
 
-      <button onClick={() => setEditingItem(blankItem)}
-      className="mb-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
-        + Add New Item
-      </button>
-
       <table className="w-full table-auto border-collapse shadow-md mb-8">
         <thead className="bg-purple-100 text-purple-800">
           <tr>
@@ -103,57 +98,69 @@ export default function AdminInventoryPage() {
         </tbody>
       </table>
 
-      <div className="border p-6 rounded-lg shadow-md bg-black-500">
-        <h2 className="text-xl font-semibold mb-4 text-white">
-          {editingItem?.id ? 'Edit Item' : 'Add New Item'}
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-            name="itemname"
-            value={editingItem?.itemname || ''}
-            onChange={handleChange}
-            placeholder="Item Name"
-            className="p-2 border rounded"
-          />
-          <input
-            name="cost"
-            value={editingItem?.cost || ''}
-            onChange={handleChange}
-            type="number"
-            placeholder="Cost"
-            className="p-2 border rounded"
-          />
-          <input
-            name="quantity"
-            value={editingItem?.quantity || ''}
-            onChange={handleChange}
-            type="number"
-            placeholder="Quantity"
-            className="p-2 border rounded"
-          />
-          <input
-            name="thumbnail"
-            value={editingItem?.thumbnail || ''}
-            onChange={handleChange}
-            placeholder="Thumbnail URL"
-            className="p-2 border rounded"
-          />
-          <textarea
-            name="descrip"
-            value={editingItem?.descrip || ''}
-            onChange={handleChange}
-            placeholder="Description"
-            className="col-span-1 md:col-span-2 p-2 border rounded"
-            rows={3}
-          />
-        </div>
-        <button
-          onClick={handleSave}
-          className="mt-4 px-4 py-2 bg-green-600 text-black rounded hover:bg-green-700"
-        >
-          Save
+      <div className="flex justify-between items-center mb-4">
+        <button onClick={() => setEditingItem(blankItem)}
+          className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+          + Add New Item
         </button>
+        {editingItem && (
+          <button
+            onClick={handleSave}
+            className="px-4 py-2 bg-green-600 text-black rounded hover:bg-green-700"
+          >
+            Save
+          </button>
+        )}
       </div>
+
+      {editingItem && (
+        <div className="border p-6 rounded-lg shadow-md bg-black-500">
+          <h2 className="text-xl font-semibold mb-4 text-white">
+            {editingItem?.id ? 'Edit Item' : 'Add New Item'}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              name="itemname"
+              value={editingItem?.itemname || ''}
+              onChange={handleChange}
+              placeholder="Item Name"
+              className="p-2 border rounded"
+            />
+            <input
+              name="cost"
+              value={editingItem?.cost || ''}
+              onChange={handleChange}
+              type="number"
+              placeholder="Cost"
+              className="p-2 border rounded"
+            />
+            <input
+              name="quantity"
+              value={editingItem?.quantity || ''}
+              onChange={handleChange}
+              type="number"
+              placeholder="Quantity"
+              className="p-2 border rounded"
+            />
+            <input
+              name="thumbnail"
+              value={editingItem?.thumbnail || ''}
+              onChange={handleChange}
+              placeholder="Thumbnail URL"
+              className="p-2 border rounded"
+            />
+            <textarea
+              name="descrip"
+              value={editingItem?.descrip || ''}
+              onChange={handleChange}
+              placeholder="Description"
+              className="col-span-1 md:col-span-2 p-2 border rounded"
+              rows={3}
+            />
+          </div>
+          {/* The Save button remains inside the editing form */}
+        </div>
+      )}
     </div>
   );
 }

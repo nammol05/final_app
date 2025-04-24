@@ -16,15 +16,48 @@ export default function CartPage() {
   const [note, setNote] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Fetch cart items from the backend when the component mounts
   useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      const parsedCart = JSON.parse(savedCart);
-      setCartItems(parsedCart); // Load items from localStorage
+    const token = localStorage.getItem('token'); // Retrieve token
+    if (!token) {
+      setError('You must be logged in to view your cart.');
+      return;
     }
+  
+    const fetchCart = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+  
+        if (!response.ok) {
+          if (response.status === 401) {
+            setError('You are not authorized. Please log in again.');
+            return;
+          }
+          throw new Error('Failed to fetch cart items');
+        }
+  
+        const data = await response.json();
+        // Ensure the response is structured as { cartItems: [...] }
+        setCartItems(data.cartItems || []);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
+    fetchCart(); // Trigger fetch when component mounts
   }, []);
 
+  // Update the quantity of an item in the cart
   const updateQuantity = async (id: string, delta: number) => {
     const updatedItems = cartItems.map((item) =>
       item.id === id
@@ -33,11 +66,70 @@ export default function CartPage() {
     );
     setCartItems(updatedItems);
 
-    // Save updated cart to localStorage
-    localStorage.setItem('cart', JSON.stringify(updatedItems));
+    // Update the backend with the new quantity
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      setError('You must be logged in to update your cart.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          quantity: updatedItems.find((item) => item.id === id)?.quantity,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update cart item quantity');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
 
   const totalPrice = cartItems.reduce((sum, item) => sum + item.cost * item.quantity, 0);
+
+  const handleCheckout = async () => {
+    try {
+      const token = localStorage.getItem('token'); // Ensure the token is present
+      if (!token) {
+        setError('You must be logged in to checkout.');
+        return;
+      }
+
+      for (const item of cartItems) {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`, // Include the token in the header
+          },
+          body: JSON.stringify({
+            inventory_id: parseInt(item.id), // Or adjust depending on your backend API requirements
+            quantity: item.quantity,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to add item to cart.');
+        }
+      }
+
+      setError('');
+      alert('Checkout successful!');
+      setCartItems([]);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -45,14 +137,13 @@ export default function CartPage() {
 
       {error && <div className="text-red-500 mb-4">{error}</div>}
 
-      {cartItems.length === 0 ? (
+      {isLoading ? (
+        <div>Loading...</div>
+      ) : cartItems.length === 0 ? (
         <div>Your cart is empty. Start shopping!</div>
       ) : (
         cartItems.map((item) => (
-          <div
-            key={item.id}
-            className="flex items-center gap-4 border p-4 rounded-lg shadow-sm"
-          >
+          <div key={item.id} className="flex items-center gap-4 border p-4 rounded-lg shadow-sm">
             <img
               src={item.thumbnail || '/placeholder.png'}
               alt={item.itemname || 'Product image'}
@@ -77,9 +168,7 @@ export default function CartPage() {
                 </button>
               </div>
             </div>
-            <div className="text-lg font-semibold text-right">
-              ${item.cost * item.quantity}
-            </div>
+            <div className="text-lg font-semibold text-right">${item.cost * item.quantity}</div>
           </div>
         ))
       )}
@@ -112,6 +201,7 @@ export default function CartPage() {
       <div className="text-lg font-bold mb-4">Total: ${totalPrice}</div>
 
       <button
+        onClick={handleCheckout}
         className="w-full bg-purple-600 text-white text-lg font-medium rounded-lg py-3 hover:bg-purple-700 mb-4 transition-colors disabled:opacity-50"
         disabled={cartItems.length === 0 || !agreed}
       >

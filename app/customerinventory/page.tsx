@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 interface Item {
@@ -12,17 +13,86 @@ interface Item {
   descrip: string;
 }
 
+interface ProductCardProps {
+  item: Item;
+  onBuy: (item: Item) => void;
+}
+
+const ProductCard: React.FC<ProductCardProps> = ({ item, onBuy }) => {
+  const [showModal, setShowModal] = useState(false);
+
+  return (
+    <>
+      <div className="bg-[#1c1c24] text-white p-6 rounded-xl shadow-md text-center">
+        {item.imageUrl ? (
+          <Image
+            src={item.imageUrl}
+            alt={item.itemname}
+            width={200}
+            height={200}
+            className="mx-auto rounded-md"
+          />
+        ) : (
+          <div className="w-48 h-48 flex items-center justify-center bg-gray-700 rounded-md text-gray-400 italic mx-auto">
+            No Image
+          </div>
+        )}
+        <h2 className="text-xl font-bold mt-4">{item.itemname}</h2>
+        <p className="text-sm text-gray-400 mb-2">Quantity: {item.quantity}</p>
+        <button
+          onClick={() => setShowModal(true)}
+          className="bg-blue-600 hover:bg-blue-700 mt-2 px-6 py-2 rounded-lg transition"
+        >
+          View Details
+        </button>
+      </div>
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-center justify-center">
+          <div className="bg-[#1e1e2f] p-6 rounded-xl max-w-md w-full text-white relative">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-white text-xl"
+              onClick={() => setShowModal(false)}
+            >
+              ✕
+            </button>
+            {item.imageUrl && (
+              <Image
+                src={item.imageUrl}
+                alt={item.itemname}
+                width={300}
+                height={300}
+                className="mx-auto rounded-md mb-4"
+              />
+            )}
+            <h3 className="text-2xl font-bold mb-2">{item.itemname}</h3>
+            <p className="text-sm text-gray-300 mb-4">{item.descrip}</p>
+            <p className="text-sm text-gray-400 mb-4">In Stock: {item.quantity}</p>
+            <button
+              onClick={() => {
+                onBuy(item);
+                setShowModal(false);
+              }}
+              className="bg-purple-600 hover:bg-purple-700 transition-colors text-white py-2 px-6 rounded-lg"
+            >
+              Buy
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
 const CustomerInventoryPage: React.FC = () => {
   const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [cart, setCart] = useState<Item[]>([]);
-  const [isClient, setIsClient] = useState(false); // Flag to check client-side
+  const [isClient, setIsClient] = useState(false);
 
-  // Authenticate and load cart
   useEffect(() => {
-    if (typeof window === 'undefined') return; // Don't run on server
+    if (typeof window === 'undefined') return;
 
     const token = sessionStorage.getItem('authToken');
     if (!token) {
@@ -30,12 +100,8 @@ const CustomerInventoryPage: React.FC = () => {
       return;
     }
 
-    setIsClient(true); // We are safely in the client
-
+    setIsClient(true);
     fetchItems();
-
-    const storedCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCart(storedCart);
   }, [router]);
 
   const fetchItems = async () => {
@@ -57,6 +123,7 @@ const CustomerInventoryPage: React.FC = () => {
 
   const handleBuy = async (item: Item) => {
     const token = localStorage.getItem('authToken');
+  
     try {
       const response = await fetch('http://localhost:3001/cart', {
         method: 'POST',
@@ -64,40 +131,24 @@ const CustomerInventoryPage: React.FC = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ itemId: item.id, quantity: 1 }),
+        body: JSON.stringify({
+          inventory_id: item.id,
+          quantity: 1,
+        }),
       });
   
       if (response.ok) {
-        // Update cart in localStorage
-        const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-        const existingItemIndex = existingCart.findIndex((i: Item) => i.id === item.id);
-  
-        if (existingItemIndex > -1) {
-          existingCart[existingItemIndex].quantity += 1;
-        } else {
-          existingCart.push({
-            id: item.id,
-            itemname: item.itemname,
-            quantity: 1,
-            cost: 10, // Set a default or get it from item if available
-            descrip: item.descrip,
-            thumbnail: item.imageUrl,
-          });
-        }
-  
-        localStorage.setItem('cart', JSON.stringify(existingCart));
-        alert(`${item.itemname} added to cart successfully!`);
+        alert(`${item.itemname} added to cart!`);
       } else {
-        console.error('Failed to add item to cart:', response.status);
-        alert(`Failed to add ${item.itemname} to cart.`);
+        alert('Failed to add item to cart.');
       }
-    } catch (error: any) {
-      console.error('Error adding item to cart:', error);
-      alert('Error adding item to cart. Please try again.');
+    } catch (err) {
+      console.error('Error:', err);
+      alert('Error adding item to cart.');
     }
   };
 
-  if (!isClient) return null; // Prevent rendering until we know we're on the client
+  if (!isClient) return null;
 
   return (
     <div className="bg-[#1c1c24] min-h-screen p-10 text-white font-sans">
@@ -116,24 +167,7 @@ const CustomerInventoryPage: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {items.map((item) => (
-            <div key={item.id} className="bg-[#13131a] p-6 rounded-2xl shadow-md flex flex-col items-center">
-              {item.imageUrl ? (
-                <img src={item.imageUrl} alt={item.itemname} className="w-32 h-32 object-cover rounded-md mb-4" />
-              ) : (
-                <div className="w-32 h-32 flex items-center justify-center bg-gray-700 rounded-md mb-4 text-gray-400 text-sm italic">
-                  No Image
-                </div>
-              )}
-              <h2 className="text-xl font-semibold">{item.itemname}</h2>
-              <p className="text-sm text-gray-400 mb-2">{item.descrip}</p>
-              <p className="text-sm text-gray-300 mb-4">In Stock: {item.quantity}</p>
-              <button
-                onClick={() => handleBuy(item)}
-                className="bg-purple-600 hover:bg-purple-700 transition-colors text-white py-2 px-6 rounded-lg mt-auto"
-              >
-                Buy
-              </button>
-            </div>
+            <ProductCard key={item.id} item={item} onBuy={handleBuy} />
           ))}
         </div>
       </div>
